@@ -1,7 +1,7 @@
 import { cn } from '@/lib/utils'
 import React from 'react'
 
-import type { IconBaseProps, IconType } from 'react-icons'
+import type { IconBaseProps } from 'react-icons'
 
 import * as AiIcons from 'react-icons/ai'
 import * as FaIcons from 'react-icons/fa'
@@ -24,12 +24,14 @@ export type IconNames =
 
 export type IconSizes = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | (string & {})
 
-export type IconsProps<T> = IconBaseProps & {
-  name: T
+export type IconsProps = IconBaseProps & {
+  name: IconNames
   ref?: React.ForwardedRef<SVGElement>
   size?: IconSizes
   onClick?: () => void
 }
+
+export type IconType = (props: IconsProps) => JSX.Element
 
 export const iconSizesMap = new Map<IconSizes | string | undefined, string>([
   ['xs', '0.75rem'], // 12px
@@ -39,25 +41,13 @@ export const iconSizesMap = new Map<IconSizes | string | undefined, string>([
   ['xl', '2.625rem'], // 42px
 ])
 
-export function iconBuilder<T>(
-  props: IconsProps<T>,
-  reactIcons: { [name: string]: IconType },
-) {
-  const { name, size, className, ...rest } = props
-
+export const Icon = React.forwardRef<
+  React.ElementRef<IconType>,
+  React.ComponentPropsWithoutRef<IconType>
+>(({ name, size, ...props }, ref) => {
+  const namePreffix = name.slice(0, 2)
   const iconSize = iconSizesMap.get(size) ?? size
-  const Icon = reactIcons[name ?? '']
 
-  return (
-    <Icon
-      size={iconSize}
-      className={cn(rest.onClick ? 'cursor-pointer' : '', className)}
-      {...rest}
-    />
-  )
-}
-
-const BuildedIcon = (props: IconsProps<IconNames>) => {
   const iconsCollectionMap: Record<string, any> = {
     Md: MdIcons,
     Fa: FaIcons,
@@ -65,13 +55,16 @@ const BuildedIcon = (props: IconsProps<IconNames>) => {
     Si: SiIcons,
     Ai: AiIcons,
   }
-  const preffix = props.name.slice(0, 2)
-  const icons = iconsCollectionMap[preffix]
-  return iconBuilder(props, icons)
-}
+  const iconsCollection = iconsCollectionMap[namePreffix]
+  const IconByName = iconsCollection[name]
 
-export const Icon = React.forwardRef<
-  React.ElementRef<typeof BuildedIcon>,
-  React.ComponentPropsWithoutRef<typeof BuildedIcon>
->((props, ref) => <BuildedIcon ref={ref} {...props} />)
+  return (
+    <IconByName
+      {...props}
+      ref={ref}
+      size={iconSize}
+      className={cn(props.onClick ? 'cursor-pointer' : '', props.className)}
+    />
+  )
+})
 Icon.displayName = 'Icon'
